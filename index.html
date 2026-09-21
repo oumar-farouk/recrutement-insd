@@ -1,0 +1,2174 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prototype - Plateforme de recrutement INSD</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --primary: #4F46E5;
+    --primary-dark: #4338CA;
+    --primary-light: #EEF2FF;
+    --bg: #F5F6FA;
+    --card: #FFFFFF;
+    --border: #E5E7EB;
+    --text: #1F2937;
+    --text-secondary: #6B7280;
+    --text-muted: #9CA3AF;
+    --success: #10B981;
+    --warning: #F59E0B;
+    --danger: #EF4444;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, sans-serif;
+    background: var(--bg); color: var(--text); font-size: 13px;
+    line-height: 1.5;
+  }
+  button { font-family: inherit; }
+  input, select, textarea { font-family: inherit; }
+
+  /* ============ LAYOUT ============ */
+  .app { display: flex; min-height: 100vh; }
+  .sidebar {
+    width: 220px; background: var(--card);
+    border-right: 1px solid var(--border);
+    padding: 16px 0; flex-shrink: 0;
+    position: sticky; top: 0; height: 100vh; overflow-y: auto;
+  }
+  .logo {
+    display: flex; align-items: center; gap: 8px;
+    padding: 0 16px 16px; border-bottom: 1px solid var(--border);
+    margin-bottom: 12px;
+  }
+  .logo-icon {
+    width: 28px; height: 28px; background: var(--primary);
+    border-radius: 6px; display: flex; align-items: center;
+    justify-content: center; color: white; font-weight: bold; font-size: 14px;
+  }
+  .logo-text { font-weight: 700; font-size: 13px; }
+  .logo-text small { display: block; font-weight: 400; color: var(--text-secondary); font-size: 10px; }
+  .nav-section {
+    padding: 8px 16px 4px; font-size: 10px; font-weight: 700;
+    color: var(--primary); letter-spacing: 0.5px; text-transform: uppercase;
+  }
+  .nav-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 16px; color: #374151; text-decoration: none;
+    font-size: 12px; cursor: pointer; border: none; background: none;
+    width: 100%; text-align: left;
+  }
+  .nav-item:hover { background: #F9FAFB; }
+  .nav-item.active {
+    background: var(--primary-light); color: var(--primary);
+    font-weight: 600; border-left: 3px solid var(--primary);
+    padding-left: 13px;
+  }
+  .nav-icon { width: 14px; text-align: center; }
+  .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .topbar {
+    background: var(--card); border-bottom: 1px solid var(--border);
+    padding: 10px 24px; display: flex; justify-content: space-between;
+    align-items: center; position: sticky; top: 0; z-index: 10;
+  }
+  .breadcrumb { font-size: 12px; color: var(--text-secondary); }
+  .breadcrumb strong { color: var(--text); font-weight: 600; }
+  .user-info { display: flex; align-items: center; gap: 10px; font-size: 12px; }
+  .user-avatar {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: var(--danger); color: white;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 600; font-size: 11px;
+  }
+  .content { padding: 20px 24px; flex: 1; }
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* ============ COMPONENTS ============ */
+  .page-header {
+    background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+    padding: 16px 20px; display: flex; align-items: center; gap: 12px;
+    margin-bottom: 16px;
+  }
+  .page-header-icon {
+    width: 36px; height: 36px; background: var(--primary-light); color: var(--primary);
+    border-radius: 8px; display: flex; align-items: center; justify-content: center;
+    font-size: 16px; flex-shrink: 0;
+  }
+  .page-title { font-size: 15px; font-weight: 700; }
+  .page-subtitle { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+  .page-header-actions { margin-left: auto; display: flex; gap: 8px; }
+
+  .btn {
+    padding: 7px 14px; border-radius: 6px; border: none;
+    font-size: 12px; font-weight: 500; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px;
+    transition: all 0.15s;
+  }
+  .btn-primary { background: var(--primary); color: white; }
+  .btn-primary:hover { background: var(--primary-dark); }
+  .btn-secondary { background: var(--card); color: #374151; border: 1px solid var(--border); }
+  .btn-secondary:hover { background: #F9FAFB; }
+  .btn-danger { background: var(--danger); color: white; }
+  .btn-success { background: var(--success); color: white; }
+
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 8px; padding: 16px 20px; margin-bottom: 16px;
+  }
+  .filter-grid {
+    display: grid; gap: 12px; align-items: end;
+  }
+  .filter-grid.cols-4 { grid-template-columns: 2fr 1fr 1fr auto; }
+  .filter-grid.cols-5 { grid-template-columns: 1.5fr 1.5fr 1fr 1fr auto; }
+  .form-label {
+    display: block; font-size: 10px; font-weight: 600; color: var(--text-secondary);
+    margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.3px;
+  }
+  .form-input, .form-select, .form-textarea {
+    width: 100%; padding: 7px 10px; border: 1px solid var(--border);
+    border-radius: 6px; font-size: 12px; color: var(--text);
+    background: white; transition: border-color 0.15s;
+  }
+  .form-input:focus, .form-select:focus, .form-textarea:focus {
+    outline: none; border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(79,70,229,0.1);
+  }
+  .form-textarea { min-height: 80px; resize: vertical; }
+  .form-help { font-size: 10px; color: var(--text-muted); margin-top: 4px; }
+  .filter-actions { display: flex; gap: 8px; }
+
+  /* Tables */
+  .table-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 8px; overflow: hidden;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  thead { background: #F9FAFB; border-bottom: 1px solid var(--border); }
+  th {
+    text-align: left; padding: 10px 14px; font-weight: 600;
+    color: #374151; font-size: 11px; text-transform: uppercase; letter-spacing: 0.3px;
+  }
+  td { padding: 11px 14px; border-bottom: 1px solid #F3F4F6; color: var(--text); }
+  tbody tr:hover { background: #F9FAFB; }
+  tbody tr:last-child td { border-bottom: none; }
+  .table-footer {
+    padding: 10px 14px; font-size: 11px; color: var(--text-secondary);
+    border-top: 1px solid #F3F4F6; display: flex;
+    justify-content: space-between; align-items: center;
+  }
+
+  .badge {
+    display: inline-block; padding: 2px 8px; border-radius: 10px;
+    font-size: 10px; font-weight: 600;
+  }
+  .badge-primary { background: var(--primary-light); color: var(--primary); }
+  .badge-success { background: #D1FAE5; color: #065F46; }
+  .badge-warning { background: #FEF3C7; color: #92400E; }
+  .badge-danger { background: #FEE2E2; color: #991B1B; }
+  .badge-gray { background: #F3F4F6; color: var(--text-secondary); }
+  .badge-dark { background: #1F2937; color: white; }
+  .badge-email { background: var(--primary-light); color: var(--primary); }
+  .badge-sms { background: #FEF3C7; color: #92400E; }
+  .badge-both { background: #FCE7F3; color: #9D174D; }
+
+  .actions { display: flex; gap: 6px; }
+  .action-btn {
+    width: 24px; height: 24px; border-radius: 5px; border: none;
+    cursor: pointer; display: inline-flex; align-items: center;
+    justify-content: center; font-size: 11px; background: #F3F4F6;
+    color: var(--text-secondary);
+  }
+  .action-btn:hover { background: var(--border); }
+  .action-btn.danger { background: #FEE2E2; color: var(--danger); }
+  .action-btn.success { background: #D1FAE5; color: #065F46; }
+
+  /* Tabs */
+  .tabs {
+    display: flex; gap: 4px; border-bottom: 1px solid var(--border);
+    margin-bottom: 16px;
+  }
+  .tab {
+    padding: 10px 20px; font-size: 12px; color: var(--text-secondary);
+    cursor: pointer; border-bottom: 2px solid transparent;
+    margin-bottom: -1px; font-weight: 500; background: none; border: none;
+    border-bottom: 2px solid transparent;
+  }
+  .tab.active {
+    color: var(--primary); font-weight: 600;
+    border-bottom-color: var(--primary);
+  }
+  .tab-count {
+    background: #F3F4F6; color: var(--text-secondary);
+    padding: 1px 6px; border-radius: 8px; font-size: 10px;
+    margin-left: 4px;
+  }
+  .tab.active .tab-count { background: var(--primary-light); color: var(--primary); }
+
+  /* Stats */
+  .stats-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 12px; margin-bottom: 16px;
+  }
+  .stat-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 8px; padding: 14px 16px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .stat-icon {
+    width: 36px; height: 36px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; flex-shrink: 0;
+  }
+  .stat-icon.blue { background: var(--primary-light); color: var(--primary); }
+  .stat-icon.green { background: #D1FAE5; color: #065F46; }
+  .stat-icon.orange { background: #FEF3C7; color: #92400E; }
+  .stat-icon.red { background: #FEE2E2; color: #991B1B; }
+  .stat-value { font-size: 18px; font-weight: 700; }
+  .stat-label { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+
+  /* Switch */
+  .switch-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 16px; background: #F9FAFB;
+    border: 1px solid var(--border); border-radius: 8px;
+    margin-bottom: 10px;
+  }
+  .switch-row.on { background: var(--primary-light); border-color: #C7D2FE; }
+  .switch-content { display: flex; flex-direction: column; gap: 2px; }
+  .switch-title { font-size: 12px; font-weight: 600; color: var(--text); }
+  .switch-desc { font-size: 11px; color: var(--text-secondary); }
+  .switch {
+    position: relative; width: 40px; height: 22px;
+    background: #D1D5DB; border-radius: 11px; cursor: pointer;
+    transition: background 0.2s; flex-shrink: 0;
+  }
+  .switch.on { background: var(--primary); }
+  .switch::after {
+    content: ''; position: absolute; top: 2px; left: 2px;
+    width: 18px; height: 18px; background: white;
+    border-radius: 50%; transition: left 0.2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  }
+  .switch.on::after { left: 20px; }
+
+  /* Info box */
+  .info-box {
+    background: var(--primary-light); border-left: 3px solid var(--primary);
+    padding: 10px 14px; border-radius: 4px;
+    font-size: 11px; color: #374151; margin-bottom: 14px;
+  }
+  .info-box strong { color: var(--primary); }
+  .info-box.warning { background: #FEF3C7; border-left-color: var(--warning); }
+  .info-box.warning strong { color: #92400E; }
+
+  /* Conditional block */
+  .conditional-block {
+    display: none; padding: 16px; background: #F9FAFB;
+    border: 1px dashed #C7D2FE; border-radius: 8px;
+    margin-top: 8px;
+  }
+  .conditional-block.visible { display: block; }
+
+  /* Section title in forms */
+  .form-section-title {
+    font-size: 11px; font-weight: 700; color: var(--text);
+    text-transform: uppercase; letter-spacing: 0.5px;
+    padding: 12px 0 8px; margin-top: 8px;
+    border-bottom: 1px solid #F3F4F6;
+    grid-column: 1 / -1;
+  }
+  .form-section-title:first-child { margin-top: 0; padding-top: 0; }
+
+  /* Secret field */
+  .secret-field { position: relative; }
+  .secret-field .form-input { padding-right: 36px; }
+  .secret-reveal {
+    position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; cursor: pointer;
+    color: var(--text-secondary); font-size: 12px;
+  }
+
+  /* Modal */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(17,24,39,0.55); z-index: 1000;
+    align-items: flex-start; justify-content: center;
+    padding: 40px 20px; overflow-y: auto;
+  }
+  .modal-overlay.active { display: flex; }
+  .modal {
+    background: var(--card); border-radius: 10px;
+    width: 100%; max-width: 720px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+    animation: modalIn 0.2s ease-out;
+  }
+  @keyframes modalIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .modal.large { max-width: 900px; }
+  .modal-header {
+    padding: 18px 24px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 12px;
+  }
+  .modal-header-icon {
+    width: 36px; height: 36px; border-radius: 8px;
+    background: var(--primary-light); color: var(--primary);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; flex-shrink: 0;
+  }
+  .modal-title { font-size: 15px; font-weight: 700; }
+  .modal-subtitle { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+  .modal-close {
+    margin-left: auto; width: 28px; height: 28px; border: none;
+    background: #F3F4F6; border-radius: 6px; cursor: pointer;
+    color: var(--text-secondary); font-size: 14px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .modal-close:hover { background: var(--border); color: var(--text); }
+  .modal-body { padding: 20px 24px; }
+  .modal-footer {
+    padding: 14px 24px; border-top: 1px solid var(--border);
+    display: flex; justify-content: flex-end; gap: 8px;
+    background: #F9FAFB; border-radius: 0 0 10px 10px;
+  }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-group.full { grid-column: 1 / -1; }
+  .req { color: var(--danger); margin-left: 2px; }
+
+  /* Tree (Référentiels) */
+  .tree { padding: 10px 0; }
+  .tree-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 12px; font-size: 12px; color: #374151;
+    border-radius: 6px; cursor: pointer;
+  }
+  .tree-item:hover { background: #F9FAFB; }
+  .tree-item.level-1 { font-weight: 600; color: var(--text); }
+  .tree-item.level-2 { padding-left: 36px; color: #4B5563; }
+  .tree-item.level-3 { padding-left: 60px; color: var(--text-secondary); font-size: 11px; }
+  .tree-item.selected { background: var(--primary-light); color: var(--primary); font-weight: 600; }
+  .tree-count {
+    margin-left: auto; font-size: 10px; color: var(--text-muted);
+    background: #F3F4F6; padding: 1px 6px; border-radius: 8px;
+  }
+
+  /* Stepper */
+  .stepper {
+    display: flex; align-items: center; padding: 16px 24px;
+    background: #F9FAFB; border-bottom: 1px solid var(--border);
+  }
+  .step { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--text-muted); font-weight: 500; }
+  .step.active { color: var(--primary); font-weight: 600; }
+  .step-num {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--border); color: var(--text-secondary);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700;
+  }
+  .step.active .step-num { background: var(--primary); color: white; }
+  .step-line { flex: 1; height: 1px; background: var(--border); margin: 0 8px; }
+
+  /* Demo banner */
+  .demo-banner {
+    background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
+    color: white; padding: 14px 24px; margin-bottom: 20px;
+    border-radius: 8px; display: flex; align-items: center; gap: 12px;
+  }
+  .demo-banner-icon {
+    width: 36px; height: 36px; border-radius: 8px;
+    background: rgba(255,255,255,0.2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .demo-banner-title { font-size: 13px; font-weight: 700; }
+  .demo-banner-subtitle { font-size: 11px; opacity: 0.85; margin-top: 2px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-icon">I</div>
+      <div class="logo-text">INSD<small>Recrutement</small></div>
+    </div>
+
+    <div class="nav-section">Démonstration</div>
+    <button class="nav-item active" onclick="showScreen('dashboard', event)">
+      <span class="nav-icon">🏠</span> Accueil du prototype
+    </button>
+
+    <div class="nav-section">Pilotage</div>
+    <button class="nav-item" onclick="showScreen('tableau-bord', event)">
+      <span class="nav-icon">📊</span> Tableau de bord
+    </button>
+
+    <div class="nav-section">Recrutement</div>
+    <button class="nav-item" onclick="showScreen('campagnes', event)">
+      <span class="nav-icon">📢</span> Campagnes
+    </button>
+    <button class="nav-item" onclick="showScreen('offres', event)">
+      <span class="nav-icon">📋</span> Offres
+    </button>
+    <button class="nav-item" onclick="showScreen('communiques', event)">
+      <span class="nav-icon">💬</span> Communiqués
+    </button>
+    <button class="nav-item" onclick="showScreen('candidats', event)">
+      <span class="nav-icon">👤</span> Candidats
+    </button>
+    <button class="nav-item" onclick="showScreen('candidatures', event)">
+      <span class="nav-icon">📄</span> Candidatures
+    </button>
+    <button class="nav-item" onclick="showScreen('resultats', event)">
+      <span class="nav-icon">📑</span> Résultats
+    </button>
+
+    <div class="nav-section">Présélection</div>
+    <button class="nav-item" onclick="showScreen('criteres', event)">
+      <span class="nav-icon">⚙️</span> Critères
+    </button>
+    <button class="nav-item" onclick="showScreen('executions', event)">
+      <span class="nav-icon">▶️</span> Exécutions
+    </button>
+    <button class="nav-item" onclick="showScreen('validation', event)">
+      <span class="nav-icon">✅</span> Validation
+    </button>
+
+    <div class="nav-section">Administration</div>
+    <button class="nav-item" onclick="showScreen('referentiels', event)">
+      <span class="nav-icon">🗂️</span> Référentiels
+    </button>
+    <button class="nav-item" onclick="showScreen('agents', event)">
+      <span class="nav-icon">👥</span> Agents
+    </button>
+    <button class="nav-item" onclick="showScreen('notifications', event)">
+      <span class="nav-icon">🔔</span> Notifications
+    </button>
+    <button class="nav-item" onclick="showScreen('audit', event)">
+      <span class="nav-icon">📜</span> Journal d'audit
+    </button>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <div class="breadcrumb" id="breadcrumb">
+        Prototype / <strong>Accueil</strong>
+      </div>
+      <div class="user-info">
+        <span>admin (ADMINISTRATEUR)</span>
+        <div class="user-avatar">AD</div>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- ============ ÉCRAN : ACCUEIL DU PROTOTYPE ============ -->
+      <div class="screen active" id="screen-dashboard">
+        <div class="demo-banner">
+          <div class="demo-banner-icon">🎨</div>
+          <div>
+            <div class="demo-banner-title">Prototype interactif — Plateforme de recrutement INSD</div>
+            <div class="demo-banner-subtitle">Naviguez dans le menu de gauche. Cliquez sur les boutons « + Ajouter » pour ouvrir les formulaires.</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="page-title" style="margin-bottom: 12px;">📚 Écrans disponibles dans ce prototype</div>
+          <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr);">
+            <div class="stat-card" style="cursor: pointer;" onclick="showScreen('campagnes', event)">
+              <div class="stat-icon blue">📢</div>
+              <div><div class="stat-value">16</div><div class="stat-label">Campagnes</div></div>
+            </div>
+            <div class="stat-card" style="cursor: pointer;" onclick="showScreen('offres', event)">
+              <div class="stat-icon blue">📋</div>
+              <div><div class="stat-value">17</div><div class="stat-label">Offres</div></div>
+            </div>
+            <div class="stat-card" style="cursor: pointer;" onclick="showScreen('criteres', event)">
+              <div class="stat-icon blue">⚙️</div>
+              <div><div class="stat-value">21</div><div class="stat-label">Critères</div></div>
+            </div>
+            <div class="stat-card" style="cursor: pointer;" onclick="showScreen('resultats', event)">
+              <div class="stat-icon blue">📑</div>
+              <div><div class="stat-value">Nouveau</div><div class="stat-label">Résultats</div></div>
+            </div>
+            <div class="stat-card" style="cursor: pointer;" onclick="showScreen('notifications', event)">
+              <div class="stat-icon blue">🔔</div>
+              <div><div class="stat-value">Nouveau</div><div class="stat-label">Notifications</div></div>
+            </div>
+            <div class="stat-card" style="cursor: pointer;" onclick="showScreen('referentiels', event)">
+              <div class="stat-icon blue">🗂️</div>
+              <div><div class="stat-value">Nouveau</div><div class="stat-label">Référentiels</div></div>
+            </div>
+            <div class="stat-card" style="cursor: pointer;" onclick="showScreen('agents', event)">
+              <div class="stat-icon blue">👥</div>
+              <div><div class="stat-value">Nouveau</div><div class="stat-label">Agents</div></div>
+            </div>
+            <div class="stat-card" style="cursor: pointer;" onclick="showScreen('audit', event)">
+              <div class="stat-icon blue">📜</div>
+              <div><div class="stat-value">Nouveau</div><div class="stat-label">Journal d'audit</div></div>
+            </div>
+            <div class="stat-card" style="cursor: pointer;" onclick="showScreen('tableau-bord', event)">
+              <div class="stat-icon blue">📊</div>
+              <div><div class="stat-value">15</div><div class="stat-label">Tableau de bord</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="page-title" style="margin-bottom: 12px;">✨ Nouvelles fonctionnalités intégrées</div>
+          <ul style="padding-left: 20px; font-size: 12px; color: #374151; line-height: 1.9;">
+            <li><strong>Champ booléen « Autoriser les candidatures multiples »</strong> dans la campagne</li>
+            <li><strong>Champ booléen « Activer les notifications SMS/Email »</strong> par campagne</li>
+            <li><strong>Configuration des access keys SMS et Email</strong> paramétrable par campagne</li>
+            <li><strong>Modale dédiée</strong> à la configuration des accès par campagne</li>
+            <li><strong>10 formulaires modaux</strong> de création (campagne, offre, communiqué, critère, etc.)</li>
+            <li><strong>Publication des résultats</strong> avec stepper 3 étapes</li>
+            <li><strong>Journal d'audit</strong> avec traçabilité complète</li>
+            <li><strong>Référentiels</strong> avec arborescence territoriale</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- ============ ÉCRAN : CAMPAGNES ============ -->
+      <div class="screen" id="screen-campagnes">
+        <div class="page-header">
+          <div class="page-header-icon">📢</div>
+          <div>
+            <div class="page-title">Campagnes</div>
+            <div class="page-subtitle">1 campagne enregistrée</div>
+          </div>
+          <div class="page-header-actions">
+            <button class="btn btn-primary" onclick="openModal('modal-campagne')">+ Ajouter</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="filter-grid cols-4">
+            <div>
+              <label class="form-label">Recherche</label>
+              <input class="form-input" placeholder="Libellé de la campagne...">
+            </div>
+            <div>
+              <label class="form-label">Statut</label>
+              <select class="form-select"><option>Tous</option><option>Brouillon</option><option>Ouverte</option><option>Fermée</option></select>
+            </div>
+            <div>
+              <label class="form-label">Service</label>
+              <select class="form-select"><option>Tous</option><option>Service Recrutement et Formation</option></select>
+            </div>
+            <div class="filter-actions">
+              <button class="btn btn-primary">🔍 Filtrer</button>
+              <button class="btn btn-secondary">✕</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="table-card">
+          <table>
+            <thead>
+              <tr>
+                <th>Libellé</th>
+                <th>Service</th>
+                <th>Ouverture</th>
+                <th>Fermeture</th>
+                <th>Candid. multiples</th>
+                <th>Notifications</th>
+                <th>Statut</th>
+                <th style="width:120px">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Campagne de recrutement 2026</strong></td>
+                <td>Service Recrutement et Formation</td>
+                <td>01/08/2026</td>
+                <td>31/12/2026</td>
+                <td><span class="badge badge-success">✓ Autorisées</span></td>
+                <td>
+                  <span class="badge badge-email">✉️ Email</span>
+                  <span class="badge badge-sms">📱 SMS</span>
+                </td>
+                <td><span class="badge badge-success">OUVERTE</span></td>
+                <td class="actions">
+                  <button class="action-btn" title="Voir">👁️</button>
+                  <button class="action-btn" title="Modifier" onclick="openModal('modal-campagne')">✏️</button>
+                  <button class="action-btn" title="Config. accès" onclick="openModal('modal-campagne-config')">🔑</button>
+                  <button class="action-btn danger" title="Supprimer">🗑️</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="table-footer">
+            <span>Affichage de 1 à 1 sur 1 élément</span>
+            <span>◀ 1 ▶ &nbsp;&nbsp; 20 par page</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ ÉCRAN : OFFRES ============ -->
+      <div class="screen" id="screen-offres">
+        <div class="page-header">
+          <div class="page-header-icon">📋</div>
+          <div>
+            <div class="page-title">Offres</div>
+            <div class="page-subtitle">3 offres enregistrées</div>
+          </div>
+          <div class="page-header-actions">
+            <button class="btn btn-primary" onclick="openModal('modal-offre')">+ Ajouter</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="filter-grid cols-4">
+            <div>
+              <label class="form-label">Recherche</label>
+              <input class="form-input" placeholder="Intitulé de l'offre...">
+            </div>
+            <div>
+              <label class="form-label">Campagne</label>
+              <select class="form-select"><option>Toutes</option><option>Campagne 2026</option></select>
+            </div>
+            <div>
+              <label class="form-label">Statut</label>
+              <select class="form-select"><option>Tous</option><option>Publiée</option><option>Brouillon</option><option>Fermée</option></select>
+            </div>
+            <div class="filter-actions">
+              <button class="btn btn-primary">🔍 Filtrer</button>
+              <button class="btn btn-secondary">✕</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="table-card">
+          <table>
+            <thead>
+              <tr>
+                <th>Intitulé</th>
+                <th>Campagne</th>
+                <th>Type</th>
+                <th>Postes</th>
+                <th>Dépôt</th>
+                <th>Statut</th>
+                <th style="width:150px">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Recrutement d'Enquêteurs terrain - RGPH 2026</strong></td>
+                <td>Campagne 2026</td>
+                <td>Enquêteur</td>
+                <td>500</td>
+                <td>15/08/26 → 15/09/26</td>
+                <td><span class="badge badge-success">PUBLIEE</span></td>
+                <td class="actions">
+                  <button class="action-btn">✏️</button>
+                  <button class="action-btn">📋</button>
+                  <button class="action-btn" onclick="openModal('modal-condition')">⚙️</button>
+                  <button class="action-btn danger">🗑️</button>
+                </td>
+              </tr>
+              <tr>
+                <td><strong>Agents de saisie de données - Enquête EHCVM</strong></td>
+                <td>Campagne 2026</td>
+                <td>Agent de projet</td>
+                <td>150</td>
+                <td>20/08/26 → 20/09/26</td>
+                <td><span class="badge badge-success">PUBLIEE</span></td>
+                <td class="actions">
+                  <button class="action-btn">✏️</button>
+                  <button class="action-btn">📋</button>
+                  <button class="action-btn" onclick="openModal('modal-condition')">⚙️</button>
+                  <button class="action-btn danger">🗑️</button>
+                </td>
+              </tr>
+              <tr>
+                <td><strong>Superviseurs d'enquête - Enquête agricole</strong></td>
+                <td>Campagne 2026</td>
+                <td>Superviseur</td>
+                <td>60</td>
+                <td>25/08/26 → 30/09/26</td>
+                <td><span class="badge badge-success">PUBLIEE</span></td>
+                <td class="actions">
+                  <button class="action-btn">✏️</button>
+                  <button class="action-btn">📋</button>
+                  <button class="action-btn" onclick="openModal('modal-condition')">⚙️</button>
+                  <button class="action-btn danger">🗑️</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="table-footer">
+            <span>Affichage de 1 à 3 sur 3 éléments</span>
+            <span>◀ 1 ▶ &nbsp;&nbsp; 20 par page</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ ÉCRAN : CRITÈRES ============ -->
+      <div class="screen" id="screen-criteres">
+        <div class="page-header">
+          <div class="page-header-icon">⚙️</div>
+          <div>
+            <div class="page-title">Critères de présélection</div>
+            <div class="page-subtitle">4 critères — poids cumulé 100</div>
+          </div>
+          <div class="page-header-actions">
+            <button class="btn btn-primary" onclick="openModal('modal-critere')">+ Ajouter</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="info-box">
+            <strong>Offre sélectionnée :</strong> Agents de saisie de données - Enquête EHCVM
+          </div>
+          <div class="filter-grid cols-4">
+            <div>
+              <label class="form-label">Offre</label>
+              <select class="form-select">
+                <option>Agents de saisie de données - Enquête EHCVM</option>
+                <option>Recrutement d'Enquêteurs terrain - RGPH 2026</option>
+                <option>Superviseurs d'enquête - Enquête agricole</option>
+              </select>
+            </div>
+            <div></div>
+            <div></div>
+            <div class="filter-actions">
+              <button class="btn btn-primary">Charger</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="table-card">
+          <table>
+            <thead>
+              <tr>
+                <th>Critère</th>
+                <th>Type</th>
+                <th>Pondération</th>
+                <th>Opérateur</th>
+                <th>Valeur seuil</th>
+                <th style="width:100px">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Niveau d'étude requis</strong></td>
+                <td><span class="badge badge-primary">Niveau d'étude</span></td>
+                <td><strong>40 points</strong></td>
+                <td>≥</td>
+                <td>BEPC</td>
+                <td class="actions">
+                  <button class="action-btn">✏️</button>
+                  <button class="action-btn danger">🗑️</button>
+                </td>
+              </tr>
+              <tr>
+                <td><strong>Expérience en enquête</strong></td>
+                <td><span class="badge badge-primary">Expérience</span></td>
+                <td><strong>20 points</strong></td>
+                <td>≥</td>
+                <td>1 enquête</td>
+                <td class="actions">
+                  <button class="action-btn">✏️</button>
+                  <button class="action-btn danger">🗑️</button>
+                </td>
+              </tr>
+              <tr>
+                <td><strong>Âge dans l'intervalle</strong></td>
+                <td><span class="badge badge-primary">Âge</span></td>
+                <td><strong>25 points</strong></td>
+                <td>Entre</td>
+                <td>18 - 47 ans</td>
+                <td class="actions">
+                  <button class="action-btn">✏️</button>
+                  <button class="action-btn danger">🗑️</button>
+                </td>
+              </tr>
+              <tr>
+                <td><strong>Disponibilité sur la période</strong></td>
+                <td><span class="badge badge-primary">Disponibilité</span></td>
+                <td><strong>15 points</strong></td>
+                <td>=</td>
+                <td>Oui</td>
+                <td class="actions">
+                  <button class="action-btn">✏️</button>
+                  <button class="action-btn danger">🗑️</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="table-footer">
+            <span>4 critères — poids cumulé : <strong>100 points</strong></span>
+            <span>✓ Configuration valide</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ ÉCRAN : RÉSULTATS ============ -->
+      <div class="screen" id="screen-resultats">
+        <div class="page-header">
+          <div class="page-header-icon">📑</div>
+          <div>
+            <div class="page-title">Publication des résultats</div>
+            <div class="page-subtitle">2 offres prêtes à publier</div>
+          </div>
+          <div class="page-header-actions">
+            <button class="btn btn-primary" onclick="openModal('modal-publication')">+ Préparer une publication</button>
+          </div>
+        </div>
+
+        <div class="tabs">
+          <button class="tab active">Toutes <span class="tab-count">3</span></button>
+          <button class="tab">Brouillons <span class="tab-count">1</span></button>
+          <button class="tab">En attente <span class="tab-count">1</span></button>
+          <button class="tab">Publiées <span class="tab-count">1</span></button>
+        </div>
+
+        <div class="table-card">
+          <table>
+            <thead>
+              <tr>
+                <th>Offre</th>
+                <th>Type de résultat</th>
+                <th>Candidats</th>
+                <th>Statut</th>
+                <th>Date signature</th>
+                <th>Publié le</th>
+                <th style="width:120px">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Agent enquêteur - EHCVM</td>
+                <td>Liste présélection</td>
+                <td>45</td>
+                <td><span class="badge badge-warning">En attente</span></td>
+                <td>—</td>
+                <td>—</td>
+                <td class="actions">
+                  <button class="action-btn">👁️</button>
+                  <button class="action-btn">✏️</button>
+                  <button class="action-btn success">✅</button>
+                </td>
+              </tr>
+              <tr>
+                <td>Superviseurs - Enquête agricole</td>
+                <td>Liste retenus</td>
+                <td>12</td>
+                <td><span class="badge badge-success">Publié</span></td>
+                <td>18/09/2026</td>
+                <td>18/09/2026 14h32</td>
+                <td class="actions">
+                  <button class="action-btn">👁️</button>
+                  <button class="action-btn">🔒</button>
+                </td>
+              </tr>
+              <tr>
+                <td>Agents de saisie - EHCVM</td>
+                <td>Liste rejetés</td>
+                <td>8</td>
+                <td><span class="badge badge-gray">Brouillon</span></td>
+                <td>—</td>
+                <td>—</td>
+                <td class="actions">
+                  <button class="action-btn">👁️</button>
+                  <button class="action-btn">✏️</button>
+                  <button class="action-btn danger">🗑️</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="table-footer">
+            <span>Affichage de 1 à 3 sur 3 éléments</span>
+            <span>◀ 1 ▶ &nbsp;&nbsp; 20 par page</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ ÉCRAN : NOTIFICATIONS ============ -->
+      <div class="screen" id="screen-notifications">
+        <div class="page-header">
+          <div class="page-header-icon">🔔</div>
+          <div>
+            <div class="page-title">Notifications</div>
+            <div class="page-subtitle">Modèles, historique et configuration</div>
+          </div>
+          <div class="page-header-actions">
+            <button class="btn btn-primary" onclick="openModal('modal-notification')">+ Nouveau modèle</button>
+          </div>
+        </div>
+
+        <div class="tabs">
+          <button class="tab active">Modèles</button>
+          <button class="tab">Historique des envois</button>
+          <button class="tab">Configuration globale</button>
+        </div>
+
+        <div class="table-card">
+          <table>
+            <thead>
+              <tr>
+                <th>Code</th>
+                <th>Libellé</th>
+                <th>Campagne</th>
+                <th>Canal</th>
+                <th>Événement</th>
+                <th>Statut</th>
+                <th style="width:100px">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>NOT-001</strong></td>
+                <td>Accusé de réception candidature</td>
+                <td>Campagne 2026</td>
+                <td><span class="badge badge-both">Email + SMS</span></td>
+                <td>Soumission candidature</td>
+                <td><span class="badge badge-success">Actif</span></td>
+                <td class="actions"><button class="action-btn">✏️</button><button class="action-btn danger">🗑️</button></td>
+              </tr>
+              <tr>
+                <td><strong>NOT-002</strong></td>
+                <td>Confirmation de présélection</td>
+                <td>Campagne 2026</td>
+                <td><span class="badge badge-email">Email</span></td>
+                <td>Présélection terminée</td>
+                <td><span class="badge badge-success">Actif</span></td>
+                <td class="actions"><button class="action-btn">✏️</button><button class="action-btn danger">🗑️</button></td>
+              </tr>
+              <tr>
+                <td><strong>NOT-003</strong></td>
+                <td>Convocation entretien</td>
+                <td>Campagne 2026</td>
+                <td><span class="badge badge-both">Email + SMS</span></td>
+                <td>Passage statut Convoqué</td>
+                <td><span class="badge badge-success">Actif</span></td>
+                <td class="actions"><button class="action-btn">✏️</button><button class="action-btn danger">🗑️</button></td>
+              </tr>
+              <tr>
+                <td><strong>NOT-004</strong></td>
+                <td>Résultat final - Retenu</td>
+                <td>Campagne 2026</td>
+                <td><span class="badge badge-email">Email</span></td>
+                <td>Publication résultats</td>
+                <td><span class="badge badge-success">Actif</span></td>
+                <td class="actions"><button class="action-btn">✏️</button><button class="action-btn danger">🗑️</button></td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="table-footer">
+            <span>Affichage de 1 à 4 sur 4 éléments</span>
+            <span>◀ 1 ▶ &nbsp;&nbsp; 20 par page</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ ÉCRAN : RÉFÉRENTIELS ============ -->
+      <div class="screen" id="screen-referentiels">
+        <div class="page-header">
+          <div class="page-header-icon">🗂️</div>
+          <div>
+            <div class="page-title">Référentiels</div>
+            <div class="page-subtitle">Découpage territorial, niveaux d'étude et types de documents</div>
+          </div>
+          <div class="page-header-actions">
+            <button class="btn btn-secondary">📥 Importer</button>
+            <button class="btn btn-primary" onclick="openModal('modal-referentiel')">+ Ajouter</button>
+          </div>
+        </div>
+
+        <div class="tabs">
+          <button class="tab active">Découpage territorial</button>
+          <button class="tab">Niveaux d'étude</button>
+          <button class="tab">Types de documents</button>
+        </div>
+
+        <div class="card">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div>
+              <div style="font-size: 12px; font-weight: 700; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.3px;">
+                Arborescence territoriale
+              </div>
+              <div class="tree">
+                <div class="tree-item level-1">🇧🇫 <strong>Burkina Faso</strong> <span class="tree-count">13 régions</span></div>
+                <div class="tree-item level-2">📍 Boucle du Mouhoun <span class="tree-count">6 provinces</span></div>
+                <div class="tree-item level-2">📍 Cascades <span class="tree-count">2 provinces</span></div>
+                <div class="tree-item level-2">📍 Centre <span class="tree-count">1 province</span></div>
+                <div class="tree-item level-3 selected">🏘️ Kadiogo <span class="tree-count">7 communes</span></div>
+                <div class="tree-item level-3">🏘️ Ouagadougou <span class="tree-count">12 arrondissements</span></div>
+                <div class="tree-item level-2">📍 Centre-Est <span class="tree-count">3 provinces</span></div>
+                <div class="tree-item level-2">📍 Centre-Nord <span class="tree-count">3 provinces</span></div>
+                <div class="tree-item level-2">📍 Centre-Ouest <span class="tree-count">4 provinces</span></div>
+                <div class="tree-item level-2">📍 Est <span class="tree-count">5 provinces</span></div>
+                <div class="tree-item level-2">📍 Hauts-Bassins <span class="tree-count">3 provinces</span></div>
+                <div class="tree-item level-2">📍 Nord <span class="tree-count">4 provinces</span></div>
+                <div class="tree-item level-2">📍 Sahel <span class="tree-count">4 provinces</span></div>
+              </div>
+            </div>
+            <div style="border-left: 1px solid #F3F4F6; padding-left: 20px;">
+              <div style="font-size: 12px; font-weight: 700; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.3px;">
+                Détail : Kadiogo
+              </div>
+              <table style="font-size: 11px;">
+                <thead>
+                  <tr>
+                    <th>Commune</th>
+                    <th>Code</th>
+                    <th>Statut</th>
+                    <th style="width:70px">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td>Ouagadougou</td><td>KAD-01</td><td><span class="badge badge-success">Actif</span></td><td class="actions"><button class="action-btn">✏️</button><button class="action-btn danger">🗑️</button></td></tr>
+                  <tr><td>Komki-Ipala</td><td>KAD-02</td><td><span class="badge badge-success">Actif</span></td><td class="actions"><button class="action-btn">✏️</button><button class="action-btn danger">🗑️</button></td></tr>
+                  <tr><td>Komsilga</td><td>KAD-03</td><td><span class="badge badge-success">Actif</span></td><td class="actions"><button class="action-btn">✏️</button><button class="action-btn danger">🗑️</button></td></tr>
+                  <tr><td>Koubri</td><td>KAD-04</td><td><span class="badge badge-success">Actif</span></td><td class="actions"><button class="action-btn">✏️</button><button class="action-btn danger">🗑️</button></td></tr>
+                  <tr><td>Pabre</td><td>KAD-05</td><td><span class="badge badge-gray">Inactif</span></td><td class="actions"><button class="action-btn">✏️</button><button class="action-btn danger">🗑️</button></td></tr>
+                  <tr><td>Saaba</td><td>KAD-06</td><td><span class="badge badge-success">Actif</span></td><td class="actions"><button class="action-btn">✏️</button><button class="action-btn danger">🗑️</button></td></tr>
+                  <tr><td>Tanghin-Dassouri</td><td>KAD-07</td><td><span class="badge badge-success">Actif</span></td><td class="actions"><button class="action-btn">✏️</button><button class="action-btn danger">🗑️</button></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ ÉCRAN : AGENTS ============ -->
+      <div class="screen" id="screen-agents">
+        <div class="page-header">
+          <div class="page-header-icon">👥</div>
+          <div>
+            <div class="page-title">Administration des utilisateurs</div>
+            <div class="page-subtitle">Agents, comptes, profils et privilèges</div>
+          </div>
+          <div class="page-header-actions">
+            <button class="btn btn-primary" onclick="openModal('modal-agent')">+ Nouvel agent</button>
+          </div>
+        </div>
+
+        <div class="tabs">
+          <button class="tab active">Agents</button>
+          <button class="tab">Comptes</button>
+          <button class="tab">Profils</button>
+          <button class="tab">Privilèges</button>
+        </div>
+
+        <div class="table-card">
+          <table>
+            <thead>
+              <tr>
+                <th>Agent</th>
+                <th>Email</th>
+                <th>Direction / Service</th>
+                <th>Profil</th>
+                <th>Dernière connexion</th>
+                <th>Statut</th>
+                <th style="width:100px">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Administrateur Système</strong><br><small style="color: #6B7280;">admin</small></td>
+                <td>admin@insd.bf</td>
+                <td>Direction générale</td>
+                <td><span class="badge badge-danger">Administrateur</span></td>
+                <td>18/09/2026 13h22</td>
+                <td><span class="badge badge-success">Actif</span></td>
+                <td class="actions"><button class="action-btn">✏️</button><button class="action-btn">🔑</button><button class="action-btn danger">🚫</button></td>
+              </tr>
+              <tr>
+                <td><strong>Rasmane SANKARA</strong><br><small style="color: #6B7280;">gestionnaire</small></td>
+                <td>r.sankara@insd.bf</td>
+                <td>Service Recrutement et Formation</td>
+                <td><span class="badge badge-primary">Gestionnaire</span></td>
+                <td>18/09/2026 14h28</td>
+                <td><span class="badge badge-success">Actif</span></td>
+                <td class="actions"><button class="action-btn">✏️</button><button class="action-btn">🔑</button><button class="action-btn danger">🚫</button></td>
+              </tr>
+              <tr>
+                <td><strong>Aïcha NIKIEMA</strong><br><small style="color: #6B7280;">comite</small></td>
+                <td>a.nikiema@insd.bf</td>
+                <td>Direction des enquêtes</td>
+                <td><span class="badge badge-warning">Comité</span></td>
+                <td>18/09/2026 11h45</td>
+                <td><span class="badge badge-success">Actif</span></td>
+                <td class="actions"><button class="action-btn">✏️</button><button class="action-btn">🔑</button><button class="action-btn danger">🚫</button></td>
+              </tr>
+              <tr>
+                <td><strong>Mariam ZONGO</strong><br><small style="color: #6B7280;">m.zongo</small></td>
+                <td>m.zongo@insd.bf</td>
+                <td>Direction des enquêtes</td>
+                <td><span class="badge badge-success">Agent</span></td>
+                <td>12/09/2026 09h30</td>
+                <td><span class="badge badge-danger">Verrouillé</span></td>
+                <td class="actions"><button class="action-btn">✏️</button><button class="action-btn">🔑</button><button class="action-btn success">🔓</button></td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="table-footer">
+            <span>Affichage de 1 à 4 sur 4 éléments</span>
+            <span>◀ 1 ▶ &nbsp;&nbsp; 20 par page</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ ÉCRAN : AUDIT ============ -->
+      <div class="screen" id="screen-audit">
+        <div class="page-header">
+          <div class="page-header-icon">📜</div>
+          <div>
+            <div class="page-title">Journal d'audit</div>
+            <div class="page-subtitle">Traçabilité complète et non répudiable</div>
+          </div>
+          <div class="page-header-actions">
+            <button class="btn btn-secondary">📥 Exporter Excel</button>
+            <button class="btn btn-secondary">📄 Exporter PDF</button>
+          </div>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon blue">📊</div>
+            <div><div class="stat-value">12 458</div><div class="stat-label">Actions ce mois</div></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon green">✅</div>
+            <div><div class="stat-value">11 902</div><div class="stat-label">Succès</div></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon orange">⚠️</div>
+            <div><div class="stat-value">412</div><div class="stat-label">Avertissements</div></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon red">❌</div>
+            <div><div class="stat-value">144</div><div class="stat-label">Échecs</div></div>
+          </div>
+        </div>
+
+        <div class="table-card">
+          <table>
+            <thead>
+              <tr>
+                <th>Horodatage</th>
+                <th>Utilisateur</th>
+                <th>Action</th>
+                <th>Objet</th>
+                <th>Détail</th>
+                <th>IP</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>18/09/2026 14h32:15</td>
+                <td><strong>admin</strong></td>
+                <td><span class="badge badge-warning">Publication</span></td>
+                <td>Résultats INSD/2026/REC-05</td>
+                <td>45 candidats publiés</td>
+                <td>192.168.1.42</td>
+              </tr>
+              <tr>
+                <td>18/09/2026 14h28:03</td>
+                <td><strong>gestionnaire</strong></td>
+                <td><span class="badge badge-both">Présélection</span></td>
+                <td>Offre INSD/2026/REC-05</td>
+                <td>45 présélectionnés / 8 rejetés</td>
+                <td>192.168.1.38</td>
+              </tr>
+              <tr>
+                <td>18/09/2026 14h15:47</td>
+                <td><strong>admin</strong></td>
+                <td><span class="badge badge-primary">Modification</span></td>
+                <td>Critères de présélection</td>
+                <td>Poids « Niveau » : 40 → 45</td>
+                <td>192.168.1.42</td>
+              </tr>
+              <tr>
+                <td>18/09/2026 13h50:22</td>
+                <td><strong>gestionnaire</strong></td>
+                <td><span class="badge badge-success">Création</span></td>
+                <td>Offre INSD/2026/REC-06</td>
+                <td>Superviseurs - Enquête agricole</td>
+                <td>192.168.1.38</td>
+              </tr>
+              <tr>
+                <td>18/09/2026 13h22:11</td>
+                <td><strong>admin</strong></td>
+                <td><span class="badge badge-primary">Connexion</span></td>
+                <td>Session admin</td>
+                <td>Connexion réussie (2FA)</td>
+                <td>192.168.1.42</td>
+              </tr>
+              <tr>
+                <td>18/09/2026 12h58:04</td>
+                <td><strong>gestionnaire</strong></td>
+                <td><span class="badge badge-danger">Suppression</span></td>
+                <td>Communiqué brouillon #23</td>
+                <td>Suppression du brouillon</td>
+                <td>192.168.1.38</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="table-footer">
+            <span>Affichage de 1 à 6 sur 12 458 éléments</span>
+            <span>◀ 1 2 3 … 1246 ▶ &nbsp;&nbsp; 20 par page</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ ÉCRAN : TABLEAU DE BORD ============ -->
+      <div class="screen" id="screen-tableau-bord">
+        <div class="page-header">
+          <div class="page-header-icon">📊</div>
+          <div>
+            <div class="page-title">Tableau de bord</div>
+            <div class="page-subtitle">7 candidatures sur le périmètre</div>
+          </div>
+          <div class="page-header-actions">
+            <button class="btn btn-secondary">📥 Exporter</button>
+          </div>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon blue">📄</div>
+            <div><div class="stat-value">7</div><div class="stat-label">Candidatures total</div></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon red">❌</div>
+            <div><div class="stat-value">3</div><div class="stat-label">Rejetées (43%)</div></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon green">✅</div>
+            <div><div class="stat-value">2</div><div class="stat-label">Validées (29%)</div></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon orange">⏳</div>
+            <div><div class="stat-value">1</div><div class="stat-label">Présélectionnées (14%)</div></div>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
+          <div class="card">
+            <div class="page-title" style="font-size: 13px; margin-bottom: 12px;">Répartition par sexe</div>
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+              <span style="width: 20px;">M</span>
+              <div style="flex: 1; height: 8px; background: #F3F4F6; border-radius: 4px; overflow: hidden;">
+                <div style="width: 57%; height: 100%; background: #4F46E5;"></div>
+              </div>
+              <span style="font-size: 11px; color: #6B7280;">4 (57%)</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span style="width: 20px;">F</span>
+              <div style="flex: 1; height: 8px; background: #F3F4F6; border-radius: 4px; overflow: hidden;">
+                <div style="width: 43%; height: 100%; background: #F59E0B;"></div>
+              </div>
+              <span style="font-size: 11px; color: #6B7280;">3 (43%)</span>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="page-title" style="font-size: 13px; margin-bottom: 12px;">Répartition par région</div>
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+              <span style="width: 100px; font-size: 11px;">Hauts-Bassins</span>
+              <div style="flex: 1; height: 8px; background: #F3F4F6; border-radius: 4px; overflow: hidden;">
+                <div style="width: 30%; height: 100%; background: #4F46E5;"></div>
+              </div>
+              <span style="font-size: 11px; color: #6B7280;">2</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+              <span style="width: 100px; font-size: 11px;">Centre</span>
+              <div style="flex: 1; height: 8px; background: #F3F4F6; border-radius: 4px; overflow: hidden;">
+                <div style="width: 15%; height: 100%; background: #10B981;"></div>
+              </div>
+              <span style="font-size: 11px; color: #6B7280;">1</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+              <span style="width: 100px; font-size: 11px;">Boucle du Mouhoun</span>
+              <div style="flex: 1; height: 8px; background: #F3F4F6; border-radius: 4px; overflow: hidden;">
+                <div style="width: 15%; height: 100%; background: #F59E0B;"></div>
+              </div>
+              <span style="font-size: 11px; color: #6B7280;">1</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span style="width: 100px; font-size: 11px;">Sahel</span>
+              <div style="flex: 1; height: 8px; background: #F3F4F6; border-radius: 4px; overflow: hidden;">
+                <div style="width: 15%; height: 100%; background: #EF4444;"></div>
+              </div>
+              <span style="font-size: 11px; color: #6B7280;">1</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================= -->
+<!-- MODALES -->
+<!-- ============================================================= -->
+
+<!-- MODALE : CAMPAGNE (v2 enrichie) -->
+<div class="modal-overlay" id="modal-campagne">
+  <div class="modal large">
+    <div class="modal-header">
+      <div class="modal-header-icon">📢</div>
+      <div>
+        <div class="modal-title">Nouvelle campagne de recrutement</div>
+        <div class="modal-subtitle">Créer une campagne regroupant plusieurs offres</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-campagne')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-section-title">Informations générales</div>
+        <div class="form-group full">
+          <label class="form-label">Libellé de la campagne <span class="req">*</span></label>
+          <input class="form-input" value="Campagne de recrutement 2026">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Service rattaché <span class="req">*</span></label>
+          <select class="form-select">
+            <option>Service Recrutement et Formation</option>
+            <option>Direction des enquêtes</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Statut initial</label>
+          <select class="form-select">
+            <option>Brouillon</option>
+            <option>Ouverte</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Date d'ouverture <span class="req">*</span></label>
+          <input class="form-input" type="date" value="2026-08-01">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Date de fermeture <span class="req">*</span></label>
+          <input class="form-input" type="date" value="2026-12-31">
+        </div>
+        <div class="form-group full">
+          <label class="form-label">Description</label>
+          <textarea class="form-textarea">Campagne nationale de recrutement d'agents temporaires de collecte de données pour l'année 2026.</textarea>
+        </div>
+
+        <div class="form-section-title">Options de candidature</div>
+        <div class="form-group full">
+          <div class="switch-row on">
+            <div class="switch-content">
+              <div class="switch-title">Autoriser les candidatures à plusieurs offres</div>
+              <div class="switch-desc">Si activé, un candidat peut postuler à plusieurs offres de cette campagne (dérogation à RG-02).</div>
+            </div>
+            <div class="switch on" onclick="toggleSwitch(this)"></div>
+          </div>
+        </div>
+
+        <div class="form-section-title">Notifications</div>
+        <div class="form-group full">
+          <div class="switch-row on">
+            <div class="switch-content">
+              <div class="switch-title">Activer les notifications par email</div>
+              <div class="switch-desc">Envoi automatique des accusés de réception et convocations par email.</div>
+            </div>
+            <div class="switch on" onclick="toggleSwitch(this, 'campagne-notif-config')"></div>
+          </div>
+          <div class="switch-row on">
+            <div class="switch-content">
+              <div class="switch-title">Activer les notifications par SMS</div>
+              <div class="switch-desc">Envoi des notifications critiques par SMS (accusé, convocation).</div>
+            </div>
+            <div class="switch on" onclick="toggleSwitch(this, 'campagne-notif-config')"></div>
+          </div>
+        </div>
+
+        <div class="conditional-block visible" id="campagne-notif-config">
+          <div class="info-box">
+            <strong>💡 Configuration des accès</strong><br>
+            Les notifications sont activées. Vous devez renseigner les clés d'accès aux fournisseurs email et SMS pour cette campagne.
+          </div>
+
+          <div class="form-section-title">🔑 Accès Email (SMTP)</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Serveur SMTP <span class="req">*</span></label>
+              <input class="form-input" placeholder="smtp.exemple.bf" value="smtp.insd.bf">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Port <span class="req">*</span></label>
+              <input class="form-input" value="587">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Identifiant SMTP <span class="req">*</span></label>
+              <input class="form-input" value="notifications@insd.bf">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Mot de passe SMTP <span class="req">*</span></label>
+              <div class="secret-field">
+                <input class="form-input" type="password" value="••••••••••••">
+                <button class="secret-reveal" onclick="revealPassword(this)">👁️</button>
+              </div>
+            </div>
+            <div class="form-group full">
+              <label class="form-label">Email expéditeur</label>
+              <input class="form-input" value="recrutement@insd.bf">
+            </div>
+          </div>
+
+          <div class="form-section-title" style="margin-top: 16px;">📱 Accès SMS</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Fournisseur SMS <span class="req">*</span></label>
+              <select class="form-select">
+                <option>Orange SMS API</option>
+                <option>Moov Africa SMS</option>
+                <option>Twilio</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Sender ID <span class="req">*</span></label>
+              <input class="form-input" value="INSD">
+            </div>
+            <div class="form-group full">
+              <label class="form-label">Access Key / API Key <span class="req">*</span></label>
+              <div class="secret-field">
+                <input class="form-input" type="password" value="••••••••••••••••••••••••">
+                <button class="secret-reveal" onclick="revealPassword(this)">👁️</button>
+              </div>
+            </div>
+            <div class="form-group full">
+              <label class="form-label">URL de l'API</label>
+              <input class="form-input" value="https://api.orange.bf/sms/v1/send">
+            </div>
+          </div>
+
+          <div style="margin-top: 14px; display: flex; gap: 8px;">
+            <button class="btn btn-secondary" style="font-size: 11px;">✉️ Tester email</button>
+            <button class="btn btn-secondary" style="font-size: 11px;">📱 Tester SMS</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-campagne')">Annuler</button>
+      <button class="btn btn-primary" onclick="closeModal('modal-campagne')">💾 Enregistrer la campagne</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODALE : CONFIGURATION DES ACCÈS PAR CAMPAGNE -->
+<div class="modal-overlay" id="modal-campagne-config">
+  <div class="modal large">
+    <div class="modal-header">
+      <div class="modal-header-icon">🔑</div>
+      <div>
+        <div class="modal-title">Configuration des accès aux notifications</div>
+        <div class="modal-subtitle">Campagne : Campagne de recrutement 2026</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-campagne-config')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="info-box">
+        <strong>État des notifications</strong><br>
+        Email : <strong style="color: #10B981;">✓ Activé</strong> &nbsp;•&nbsp; SMS : <strong style="color: #10B981;">✓ Activé</strong>
+      </div>
+
+      <div class="form-section-title">✉️ Configuration Email (SMTP)</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Serveur SMTP <span class="req">*</span></label>
+          <input class="form-input" value="smtp.insd.bf">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Port <span class="req">*</span></label>
+          <input class="form-input" value="587">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Sécurisation</label>
+          <select class="form-select">
+            <option>TLS</option>
+            <option>SSL</option>
+            <option>Aucune</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Identifiant SMTP <span class="req">*</span></label>
+          <input class="form-input" value="notifications@insd.bf">
+        </div>
+        <div class="form-group full">
+          <label class="form-label">Mot de passe SMTP <span class="req">*</span></label>
+          <div class="secret-field">
+            <input class="form-input" type="password" value="••••••••••••••••">
+            <button class="secret-reveal" onclick="revealPassword(this)">👁️</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email expéditeur</label>
+          <input class="form-input" value="recrutement@insd.bf">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nom expéditeur</label>
+          <input class="form-input" value="INSD Recrutement">
+        </div>
+      </div>
+
+      <div class="form-section-title" style="margin-top: 20px;">📱 Configuration SMS</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Fournisseur SMS <span class="req">*</span></label>
+          <select class="form-select">
+            <option>Orange SMS API</option>
+            <option>Moov Africa SMS</option>
+            <option>Twilio</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Sender ID <span class="req">*</span></label>
+          <input class="form-input" value="INSD">
+        </div>
+        <div class="form-group full">
+          <label class="form-label">Access Key / API Key <span class="req">*</span></label>
+          <div class="secret-field">
+            <input class="form-input" type="password" value="••••••••••••••••••••••••••••">
+            <button class="secret-reveal" onclick="revealPassword(this)">👁️</button>
+          </div>
+          <div class="form-help">Clé secrète fournie par l'opérateur SMS. Stockée chiffrée côté serveur.</div>
+        </div>
+        <div class="form-group full">
+          <label class="form-label">URL de l'API</label>
+          <input class="form-input" value="https://api.orange.bf/sms/v1/send">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nombre max de tentatives</label>
+          <input class="form-input" type="number" value="3">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Délai entre tentatives (s)</label>
+          <input class="form-input" type="number" value="60">
+        </div>
+      </div>
+
+      <div class="form-section-title" style="margin-top: 20px;">⚙️ Options avancées</div>
+      <div class="switch-row on">
+        <div class="switch-content">
+          <div class="switch-title">Notifier l'administrateur en cas d'échec d'envoi</div>
+          <div class="switch-desc">Un email d'alerte est envoyé à l'administrateur si un envoi échoue.</div>
+        </div>
+        <div class="switch on" onclick="toggleSwitch(this)"></div>
+      </div>
+
+      <div style="margin-top: 16px; display: flex; gap: 8px;">
+        <button class="btn btn-secondary" style="font-size: 11px;">✉️ Tester l'envoi email</button>
+        <button class="btn btn-secondary" style="font-size: 11px;">📱 Tester l'envoi SMS</button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-campagne-config')">Annuler</button>
+      <button class="btn btn-primary" onclick="closeModal('modal-campagne-config')">💾 Enregistrer la configuration</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODALE : OFFRE -->
+<div class="modal-overlay" id="modal-offre">
+  <div class="modal large">
+    <div class="modal-header">
+      <div class="modal-header-icon">📋</div>
+      <div>
+        <div class="modal-title">Nouvelle offre d'emploi</div>
+        <div class="modal-subtitle">Créer une offre rattachée à une campagne</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-offre')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-section-title">Informations générales</div>
+        <div class="form-group full">
+          <label class="form-label">Intitulé de l'offre <span class="req">*</span></label>
+          <input class="form-input" value="Agent enquêteur - Enquête EHCVM">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Campagne <span class="req">*</span></label>
+          <select class="form-select"><option>Campagne de recrutement 2026</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Type <span class="req">*</span></label>
+          <select class="form-select">
+            <option>Agent enquêteur</option>
+            <option>Superviseur</option>
+            <option>Agent de saisie</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nombre de postes <span class="req">*</span></label>
+          <input class="form-input" type="number" value="150">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Service <span class="req">*</span></label>
+          <select class="form-select"><option>Service Recrutement et Formation</option></select>
+        </div>
+        <div class="form-section-title">Conditions d'éligibilité</div>
+        <div class="form-group">
+          <label class="form-label">Zone / Région</label>
+          <select class="form-select"><option>Centre</option><option>Toutes les régions</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Niveau d'étude requis <span class="req">*</span></label>
+          <select class="form-select">
+            <option>BEPC</option><option>Baccalauréat</option>
+            <option>Licence (BAC+3)</option><option>Master (BAC+5)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Âge minimum</label>
+          <input class="form-input" type="number" value="18">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Âge maximum</label>
+          <input class="form-input" type="number" value="47">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Date d'ouverture <span class="req">*</span></label>
+          <input class="form-input" type="date" value="2026-08-01">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Date de fermeture <span class="req">*</span></label>
+          <input class="form-input" type="date" value="2026-09-20">
+        </div>
+        <div class="form-section-title">Description du poste</div>
+        <div class="form-group full">
+          <label class="form-label">Description</label>
+          <textarea class="form-textarea">Dans le cadre de l'enquête harmonisée sur les conditions de vie des ménages (EHCVM)...</textarea>
+        </div>
+        <div class="form-group full">
+          <label class="form-label">Missions</label>
+          <textarea class="form-textarea">• Administrer le questionnaire ménage sur tablette
+• Contrôler la cohérence des données saisies
+• Transmettre quotidiennement les données au superviseur</textarea>
+        </div>
+        <div class="form-group full">
+          <label class="form-label">Pièces à fournir</label>
+          <textarea class="form-textarea">• Demande manuscrite
+• CNIB ou passeport
+• Diplôme requis
+• CV daté et signé</textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-offre')">Annuler</button>
+      <button class="btn btn-primary" onclick="closeModal('modal-offre')">💾 Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODALE : CRITÈRE -->
+<div class="modal-overlay" id="modal-critere">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-header-icon">⚙️</div>
+      <div>
+        <div class="modal-title">Nouveau critère de présélection</div>
+        <div class="modal-subtitle">Paramétrer un critère d'évaluation automatique</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-critere')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="info-box">
+        <strong>Total des pondérations :</strong> 100 points répartis sur 4 critères.
+      </div>
+      <div class="form-grid">
+        <div class="form-group full">
+          <label class="form-label">Offre concernée <span class="req">*</span></label>
+          <select class="form-select">
+            <option>Agents de saisie de données - Enquête EHCVM</option>
+            <option>Recrutement d'Enquêteurs terrain - RGPH 2026</option>
+          </select>
+        </div>
+        <div class="form-group full">
+          <label class="form-label">Libellé du critère <span class="req">*</span></label>
+          <input class="form-input" value="Niveau d'étude requis">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Type <span class="req">*</span></label>
+          <select class="form-select">
+            <option>Niveau d'étude</option>
+            <option>Expérience en enquête</option>
+            <option>Zone géographique</option>
+            <option>Disponibilité</option>
+            <option>Âge</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Pondération <span class="req">*</span></label>
+          <input class="form-input" type="number" value="40">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Opérateur</label>
+          <select class="form-select">
+            <option>Égal à</option>
+            <option>Supérieur ou égal à</option>
+            <option>Compris entre</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Valeur seuil</label>
+          <input class="form-input" value="BEPC">
+        </div>
+        <div class="form-group full">
+          <label class="form-label">Description / Motif de rejet</label>
+          <textarea class="form-textarea">Le candidat doit être titulaire du BEPC ou d'un diplôme supérieur.</textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-critere')">Annuler</button>
+      <button class="btn btn-primary" onclick="closeModal('modal-critere')">💾 Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODALE : CONDITION -->
+<div class="modal-overlay" id="modal-condition">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-header-icon">📋</div>
+      <div>
+        <div class="modal-title">Nouvelle condition de candidature</div>
+        <div class="modal-subtitle">Ajouter une condition à respecter par le candidat</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-condition')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group full">
+          <label class="form-label">Libellé <span class="req">*</span></label>
+          <input class="form-input" value="Demande manuscrite">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Type <span class="req">*</span></label>
+          <select class="form-select">
+            <option>Pièce justificative</option>
+            <option>Critère d'éligibilité</option>
+            <option>Engagement</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Obligatoire <span class="req">*</span></label>
+          <select class="form-select"><option>Oui</option><option>Non</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Type de document</label>
+          <select class="form-select">
+            <option>Demande manuscrite</option>
+            <option>CNIB / Passeport</option>
+            <option>Diplôme</option>
+            <option>CV</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Ordre d'affichage</label>
+          <input class="form-input" type="number" value="1">
+        </div>
+        <div class="form-group full">
+          <label class="form-label">Description</label>
+          <textarea class="form-textarea">Demande manuscrite adressée à Monsieur le Directeur général de l'INSD.</textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-condition')">Annuler</button>
+      <button class="btn btn-primary" onclick="closeModal('modal-condition')">💾 Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODALE : AGENT -->
+<div class="modal-overlay" id="modal-agent">
+  <div class="modal large">
+    <div class="modal-header">
+      <div class="modal-header-icon">👥</div>
+      <div>
+        <div class="modal-title">Nouvel agent / compte utilisateur</div>
+        <div class="modal-subtitle">Créer un compte d'accès au back-office</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-agent')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-section-title">Identité</div>
+        <div class="form-group">
+          <label class="form-label">Nom <span class="req">*</span></label>
+          <input class="form-input" placeholder="SANKARA">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Prénom <span class="req">*</span></label>
+          <input class="form-input" placeholder="Rasmane">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email <span class="req">*</span></label>
+          <input class="form-input" type="email" placeholder="r.sankara@insd.bf">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Téléphone</label>
+          <input class="form-input" placeholder="+226 70 12 34 56">
+        </div>
+        <div class="form-section-title">Rattachement</div>
+        <div class="form-group">
+          <label class="form-label">Direction <span class="req">*</span></label>
+          <select class="form-select">
+            <option>Direction générale</option>
+            <option>Direction des enquêtes</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Service <span class="req">*</span></label>
+          <select class="form-select">
+            <option>Service Recrutement et Formation</option>
+          </select>
+        </div>
+        <div class="form-section-title">Compte et sécurité</div>
+        <div class="form-group">
+          <label class="form-label">Identifiant <span class="req">*</span></label>
+          <input class="form-input" placeholder="r.sankara">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Profil / Rôle <span class="req">*</span></label>
+          <select class="form-select">
+            <option>Agent</option>
+            <option>Gestionnaire de recrutement</option>
+            <option>Administrateur</option>
+            <option>Comité de suivi</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Mot de passe provisoire <span class="req">*</span></label>
+          <input class="form-input" type="password" value="••••••••••••">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Confirmation <span class="req">*</span></label>
+          <input class="form-input" type="password" value="••••••••••••">
+        </div>
+        <div class="form-group full">
+          <label class="form-label">Options</label>
+          <div style="display: flex; flex-wrap: wrap; gap: 12px; padding-top: 4px;">
+            <label style="display: flex; align-items: center; gap: 6px; font-size: 12px;"><input type="checkbox" checked style="accent-color: #4F46E5;"> Forcer le changement de mot de passe</label>
+            <label style="display: flex; align-items: center; gap: 6px; font-size: 12px;"><input type="checkbox" checked style="accent-color: #4F46E5;"> Activer la 2FA</label>
+            <label style="display: flex; align-items: center; gap: 6px; font-size: 12px;"><input type="checkbox" style="accent-color: #4F46E5;"> Envoyer les identifiants par email</label>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-agent')">Annuler</button>
+      <button class="btn btn-primary" onclick="closeModal('modal-agent')">💾 Créer le compte</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODALE : RÉFÉRENTIEL -->
+<div class="modal-overlay" id="modal-referentiel">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-header-icon">🗂️</div>
+      <div>
+        <div class="modal-title">Nouveau référentiel</div>
+        <div class="modal-subtitle">Ajouter une entrée dans le découpage territorial</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-referentiel')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group full">
+          <label class="form-label">Type <span class="req">*</span></label>
+          <select class="form-select">
+            <option>Région</option>
+            <option>Province</option>
+            <option>Commune</option>
+            <option>Niveau d'étude</option>
+            <option>Type de document</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Code <span class="req">*</span></label>
+          <input class="form-input" placeholder="Ex : CEN">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Libellé <span class="req">*</span></label>
+          <input class="form-input" placeholder="Ex : Centre">
+        </div>
+        <div class="form-group full">
+          <label class="form-label">Rattachement hiérarchique</label>
+          <select class="form-select">
+            <option>Burkina Faso (racine)</option>
+            <option>Centre</option>
+            <option>Hauts-Bassins</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Statut</label>
+          <select class="form-select"><option>Actif</option><option>Inactif</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Ordre d'affichage</label>
+          <input class="form-input" type="number" value="1">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-referentiel')">Annuler</button>
+      <button class="btn btn-primary" onclick="closeModal('modal-referentiel')">💾 Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODALE : NOTIFICATION -->
+<div class="modal-overlay" id="modal-notification">
+  <div class="modal large">
+    <div class="modal-header">
+      <div class="modal-header-icon">🔔</div>
+      <div>
+        <div class="modal-title">Nouveau modèle de notification</div>
+        <div class="modal-subtitle">Créer un modèle rattaché à une campagne</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-notification')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Code <span class="req">*</span></label>
+          <input class="form-input" placeholder="NOT-007">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Libellé <span class="req">*</span></label>
+          <input class="form-input" placeholder="Accusé de réception">
+        </div>
+        <div class="form-group full">
+          <label class="form-label">Campagne associée <span class="req">*</span></label>
+          <select class="form-select">
+            <option>Campagne de recrutement 2026</option>
+            <option>Modèle global</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Canal <span class="req">*</span></label>
+          <select class="form-select">
+            <option>Email + SMS</option>
+            <option>Email</option>
+            <option>SMS</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Événement <span class="req">*</span></label>
+          <select class="form-select">
+            <option>Soumission candidature</option>
+            <option>Présélection terminée</option>
+            <option>Publication résultats</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Langue</label>
+          <select class="form-select"><option>Français</option><option>Anglais</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Statut</label>
+          <select class="form-select"><option>Actif</option><option>Inactif</option></select>
+        </div>
+        <div class="form-group full">
+          <label class="form-label">Objet (email)</label>
+          <input class="form-input" value="[INSD Recrutement] Accusé de réception">
+        </div>
+        <div class="form-group full">
+          <label class="form-label">Corps du message <span class="req">*</span></label>
+          <textarea class="form-textarea" style="min-height: 120px;">Bonjour {{nom_candidat}},
+
+Nous accusons réception de votre candidature pour l'offre « {{libelle_offre}} ».
+Votre numéro de suivi est : {{numero_suivi}}.
+
+Cordialement,
+L'équipe Recrutement - INSD</textarea>
+          <div class="form-help">Variables : {{nom_candidat}}, {{numero_suivi}}, {{libelle_offre}}</div>
+        </div>
+      </div>
+
+      <div class="conditional-block visible" style="margin-top: 16px;">
+        <div class="info-box">
+          <strong>🔑 Configuration héritée de la campagne</strong><br>
+          Email : <code style="background: #FFFFFF; padding: 2px 6px; border-radius: 3px;">smtp.insd.bf:587</code> &nbsp;•&nbsp;
+          SMS : <code style="background: #FFFFFF; padding: 2px 6px; border-radius: 3px;">Orange SMS API</code>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-notification')">Annuler</button>
+      <button class="btn btn-primary" onclick="closeModal('modal-notification')">💾 Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODALE : PUBLICATION RÉSULTATS -->
+<div class="modal-overlay" id="modal-publication">
+  <div class="modal large">
+    <div class="modal-header">
+      <div class="modal-header-icon">📑</div>
+      <div>
+        <div class="modal-title">Préparer une publication de résultats</div>
+        <div class="modal-subtitle">Étape 2 sur 3 — Sélection des candidats</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-publication')">✕</button>
+    </div>
+    <div class="stepper">
+      <div class="step active"><div class="step-num">✓</div> Informations</div>
+      <div class="step-line"></div>
+      <div class="step active"><div class="step-num">2</div> Sélection</div>
+      <div class="step-line"></div>
+      <div class="step"><div class="step-num">3</div> Validation</div>
+    </div>
+    <div class="modal-body">
+      <div class="info-box">
+        <strong>Offre :</strong> Agent enquêteur - EHCVM &nbsp;•&nbsp; <strong>Type :</strong> Liste présélection
+      </div>
+      <div class="form-grid">
+        <div class="form-group full">
+          <label class="form-label">Candidats concernés (45 sélectionnés sur 53)</label>
+          <div style="border: 1px solid #E5E7EB; border-radius: 6px; overflow: hidden; max-height: 220px; overflow-y: auto;">
+            <table style="font-size: 11px;">
+              <thead>
+                <tr>
+                  <th style="width: 30px;"><input type="checkbox" checked style="accent-color: #4F46E5;"></th>
+                  <th>Rang</th>
+                  <th>N° suivi</th>
+                  <th>Candidat</th>
+                  <th>Score</th>
+                  <th>Statut</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td><input type="checkbox" checked style="accent-color: #4F46E5;"></td><td>1</td><td>INSD-2026-ECRMRPNQ</td><td>SANKARA Rasmane</td><td>55</td><td><span class="badge badge-warning">Présélectionnée</span></td></tr>
+                <tr><td><input type="checkbox" checked style="accent-color: #4F46E5;"></td><td>2</td><td>INSD-2026-KPFM3KE</td><td>COMPAORE Salif</td><td>55</td><td><span class="badge badge-warning">Présélectionnée</span></td></tr>
+                <tr><td><input type="checkbox" checked style="accent-color: #4F46E5;"></td><td>3</td><td>INSD-2026-237DMRWS</td><td>KABORE Issouf</td><td>55</td><td><span class="badge badge-warning">Présélectionnée</span></td></tr>
+                <tr><td><input type="checkbox" checked style="accent-color: #4F46E5;"></td><td>4</td><td>INSD-2026-JJFJC7TD</td><td>TRAORE Fatimata</td><td>55</td><td><span class="badge badge-warning">Présélectionnée</span></td></tr>
+                <tr><td><input type="checkbox"></td><td>5</td><td>INSD-2026-MQCBXVRV</td><td>NIKIEMA Aïcha</td><td>15</td><td><span class="badge badge-danger">Rejetée</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary">◀ Précédent</button>
+      <button class="btn btn-primary" onclick="closeModal('modal-publication')">Suivant ▶</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ JAVASCRIPT ============ -->
+<script>
+  // ============ NAVIGATION ENTRE ÉCRANS ============
+  function showScreen(screenId, event) {
+    // Masquer tous les écrans
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    // Afficher l'écran ciblé
+    const screen = document.getElementById('screen-' + screenId);
+    if (screen) screen.classList.add('active');
+
+    // Mettre à jour le menu actif
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    if (event && event.target) {
+      const navItem = event.target.closest('.nav-item');
+      if (navItem) navItem.classList.add('active');
+    }
+
+    // Mettre à jour le fil d'Ariane
+    const titles = {
+      'dashboard': 'Prototype / <strong>Accueil</strong>',
+      'campagnes': 'Gestion / Recrutement / <strong>Campagnes</strong>',
+      'offres': 'Gestion / Recrutement / <strong>Offres</strong>',
+      'criteres': 'Gestion / Présélection / <strong>Critères</strong>',
+      'resultats': 'Gestion / Recrutement / <strong>Résultats</strong>',
+      'notifications': 'Gestion / Administration / <strong>Notifications</strong>',
+      'referentiels': 'Gestion / Administration / <strong>Référentiels</strong>',
+      'agents': 'Gestion / Administration / <strong>Agents</strong>',
+      'audit': 'Gestion / Administration / <strong>Journal d\'audit</strong>',
+      'tableau-bord': 'Gestion / <strong>Tableau de bord</strong>',
+      'communiques': 'Gestion / Recrutement / <strong>Communiqués</strong>',
+      'candidats': 'Gestion / Recrutement / <strong>Candidats</strong>',
+      'candidatures': 'Gestion / Recrutement / <strong>Candidatures</strong>',
+      'executions': 'Gestion / Présélection / <strong>Exécutions</strong>',
+      'validation': 'Gestion / Présélection / <strong>Validation</strong>'
+    };
+    document.getElementById('breadcrumb').innerHTML = titles[screenId] || 'Prototype';
+
+    // Scroll en haut
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // ============ MODALES ============
+  function openModal(id) {
+    document.getElementById(id).classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeModal(id) {
+    document.getElementById(id).classList.remove('active');
+    document.body.style.overflow = '';
+  }
+
+  // Fermer en cliquant sur l'overlay
+  document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    overlay.addEventListener('click', function(e) {
+      if (e.target === this) {
+        this.classList.remove('active');
+        document.body.style.overflow = '';
+      }
+    });
+  });
+
+  // Fermer avec Échap
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      document.querySelectorAll('.modal-overlay.active').forEach(m => m.classList.remove('active'));
+      document.body.style.overflow = '';
+    }
+  });
+
+  // ============ SWITCH ============
+  function toggleSwitch(el, conditionalBlockId) {
+    el.classList.toggle('on');
+    const row = el.closest('.switch-row');
+    if (row) row.classList.toggle('on');
+
+    if (conditionalBlockId) {
+      // Vérifier si au moins un switch du bloc est actif
+      const block = document.getElementById(conditionalBlockId);
+      if (block) {
+        const parentGrid = block.closest('.form-grid');
+        const switches = parentGrid.querySelectorAll('.switch');
+        const anyOn = Array.from(switches).some(s => s.classList.contains('on'));
+        block.classList.toggle('visible', anyOn);
+      }
+    }
+  }
+
+  // ============ RÉVÉLER MOT DE PASSE ============
+  function revealPassword(btn) {
+    const input = btn.previousElementSibling;
+    input.type = input.type === 'password' ? 'text' : 'password';
+    btn.textContent = input.type === 'password' ? '👁️' : '🙈';
+  }
+
+  // ============ TABS (démo visuelle) ============
+  document.querySelectorAll('.tabs').forEach(tabs => {
+    tabs.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', function() {
+        tabs.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        this.classList.add('active');
+      });
+    });
+  });
+</script>
+</body>
+</html>
